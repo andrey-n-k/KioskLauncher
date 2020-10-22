@@ -13,13 +13,10 @@ import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
-import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.Button;
-import android.widget.ImageButton;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -34,11 +31,8 @@ public class BackButtonService extends Service {
             | WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
             | WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED;
 
-    private LayoutInflater inflater;
-    private Display mDisplay;
-    private View layoutView;
-    private WindowManager windowManager;
-    private WindowManager.LayoutParams params;
+    private View mLayoutView;
+    private WindowManager mWindowManager;
 
     private BroadcastReceiver mBr;
 
@@ -46,22 +40,21 @@ public class BackButtonService extends Service {
     public void onCreate() {
         super.onCreate();
 
-        params = new WindowManager.LayoutParams(
+        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 LayoutParamFlags,
                 PixelFormat.TRANSLUCENT);
         params.gravity = Gravity.TOP | Gravity.LEFT;
-        windowManager = (WindowManager) this.getSystemService(WINDOW_SERVICE);
-        mDisplay = windowManager.getDefaultDisplay();
-        inflater = LayoutInflater.from(this);
-        layoutView = inflater.inflate(R.layout.back_button, null);
-        layoutView.setVisibility(View.GONE);
-        windowManager.addView(layoutView, params);
+        mWindowManager = (WindowManager) this.getSystemService(WINDOW_SERVICE);
+        LayoutInflater inflater = LayoutInflater.from(this);
+        mLayoutView = inflater.inflate(R.layout.back_button, null);
+        mLayoutView.setVisibility(View.GONE);
+        mWindowManager.addView(mLayoutView, params);
 
 
-        layoutView.findViewById(R.id.home_button).setOnClickListener(new View.OnClickListener() {
+        mLayoutView.findViewById(R.id.home_button).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 startActivity((new Intent(Intent.ACTION_MAIN)).addCategory(Intent.CATEGORY_HOME));
@@ -74,12 +67,12 @@ public class BackButtonService extends Service {
                 if (intent.getAction() == "com.kozlov.kiosklauncher.ACTION_SHOW_HOME_BUTTON")
                 {
                     Log.d("KIOSK", "SHOW HOME");
-                    layoutView.setVisibility(View.VISIBLE);
+                    mLayoutView.setVisibility(View.VISIBLE);
                 }
                 else if (intent.getAction() == "com.kozlov.kiosklauncher.ACTION_HIDE_HOME_BUTTON")
                 {
                     Log.d("KIOSK", "HIDE HOME");
-                    layoutView.setVisibility(View.GONE);
+                    mLayoutView.setVisibility(View.GONE);
                 }
             }
         };
@@ -107,18 +100,13 @@ public class BackButtonService extends Service {
 
         startForeground(1, notification);
 
-        //do heavy work on a background thread
-
-
-        //stopSelf();
-
         return START_NOT_STICKY;
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        windowManager.removeView(layoutView);
+        mWindowManager.removeView(mLayoutView);
         unregisterReceiver(mBr);
     }
 
